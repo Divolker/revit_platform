@@ -1,0 +1,251 @@
+import requests
+from bs4 import BeautifulSoup
+import json
+import time
+import os
+from urllib.parse import urljoin
+
+class BimlibParser:
+    def __init__(self):
+        self.base_url = 'https://bimlib.pro'
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        self.families_data = []
+        self.categories_data = []
+        self.max_items = 100
+
+    def parse(self):
+        print("Начинаем парсинг...")
+        
+        # Парсим главную страницу для получения категорий
+        response = requests.get(self.base_url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Находим категории
+        categories = soup.find_all('div', class_='category-item')
+        
+        for cat_id, category in enumerate(categories, 1):
+            category_name = category.find('h3').text.strip()
+            category_link = category.find('a')['href']
+            
+            # Сохраняем категорию
+            category_data = {
+                'id': cat_id,
+                'name': category_name,
+                'slug': category_name.lower().replace(' ', '-')
+            }
+            self.categories_data.append(category_data)
+            
+            print(f"Парсинг категории: {category_name}")
+            
+            # Парсим семейства в категории
+            self.parse_families(category_link, cat_id)
+            
+            # Проверяем лимит
+            if len(self.families_data) >= self.max_items:
+                break
+            
+            time.sleep(1)  # Пауза между запросами
+
+    def parse_families(self, category_url, category_id):
+        url = urljoin(self.base_url, category_url)
+        response = requests.get(url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        families = soup.find_all('div', class_='family-item')
+        
+        for family in families:
+            if len(self.families_data) >= self.max_items:
+                return
+                
+            try:
+                title = family.find('h4').text.strip()
+                description = family.find('p', class_='description')
+                description = description.text.strip() if description else ''
+                
+                preview_img = family.find('img')
+                preview_url = preview_img['src'] if preview_img else ''
+                
+                download_link = family.find('a', class_='download-link')
+                file_url = download_link['href'] if download_link else ''
+                
+                # Дополнительная информация
+                details = family.find('div', class_='details')
+                if details:
+                    version = details.find('span', class_='version')
+                    version = version.text.strip() if version else ''
+                    
+                    size = details.find('span', class_='size')
+                    size = size.text.strip() if size else ''
+                else:
+                    version = ''
+                    size = ''
+                
+                family_data = {
+                    'id': len(self.families_data) + 1,
+                    'title': title,
+                    'description': description,
+                    'category_id': category_id,
+                    'preview_url': urljoin(self.base_url, preview_url) if preview_url else '',
+                    'file_url': urljoin(self.base_url, file_url) if file_url else '',
+                    'revit_version': version,
+                    'file_size': size
+                }
+                
+                self.families_data.append(family_data)
+                print(f"Добавлено семейство: {title}")
+                
+            except Exception as e:
+                print(f"Ошибка при парсинге семейства: {e}")
+            
+            time.sleep(0.5)  # Пауза между семействами
+
+    def save_to_json(self):
+        # Создаем директорию для данных, если её нет
+        os.makedirs('parsed_data', exist_ok=True)
+        
+        # Сохраняем категории
+        with open('parsed_data/categories.json', 'w', encoding='utf-8') as f:
+            json.dump(self.categories_data, f, ensure_ascii=False, indent=2)
+        
+        # Сохраняем семейства
+        with open('parsed_data/families.json', 'w', encoding='utf-8') as f:
+            json.dump(self.families_data, f, ensure_ascii=False, indent=2)
+        
+        print(f"\nПарсинг завершен!")
+        print(f"Собрано категорий: {len(self.categories_data)}")
+        print(f"Собрано семейств: {len(self.families_data)}")
+        print("Данные сохранены в файлах:")
+        print("- parsed_data/categories.json")
+        print("- parsed_data/families.json")
+
+if __name__ == '__main__':
+    parser = BimlibParser()
+    parser.parse()
+    parser.save_to_json()
+from bs4 import BeautifulSoup
+import json
+import time
+import os
+from urllib.parse import urljoin
+
+class BimlibParser:
+    def __init__(self):
+        self.base_url = 'https://bimlib.pro'
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        self.families_data = []
+        self.categories_data = []
+        self.max_items = 100
+
+    def parse(self):
+        print("Начинаем парсинг...")
+        
+        # Парсим главную страницу для получения категорий
+        response = requests.get(self.base_url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Находим категории
+        categories = soup.find_all('div', class_='category-item')
+        
+        for cat_id, category in enumerate(categories, 1):
+            category_name = category.find('h3').text.strip()
+            category_link = category.find('a')['href']
+            
+            # Сохраняем категорию
+            category_data = {
+                'id': cat_id,
+                'name': category_name,
+                'slug': category_name.lower().replace(' ', '-')
+            }
+            self.categories_data.append(category_data)
+            
+            print(f"Парсинг категории: {category_name}")
+            
+            # Парсим семейства в категории
+            self.parse_families(category_link, cat_id)
+            
+            # Проверяем лимит
+            if len(self.families_data) >= self.max_items:
+                break
+            
+            time.sleep(1)  # Пауза между запросами
+
+    def parse_families(self, category_url, category_id):
+        url = urljoin(self.base_url, category_url)
+        response = requests.get(url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        families = soup.find_all('div', class_='family-item')
+        
+        for family in families:
+            if len(self.families_data) >= self.max_items:
+                return
+                
+            try:
+                title = family.find('h4').text.strip()
+                description = family.find('p', class_='description')
+                description = description.text.strip() if description else ''
+                
+                preview_img = family.find('img')
+                preview_url = preview_img['src'] if preview_img else ''
+                
+                download_link = family.find('a', class_='download-link')
+                file_url = download_link['href'] if download_link else ''
+                
+                # Дополнительная информация
+                details = family.find('div', class_='details')
+                if details:
+                    version = details.find('span', class_='version')
+                    version = version.text.strip() if version else ''
+                    
+                    size = details.find('span', class_='size')
+                    size = size.text.strip() if size else ''
+                else:
+                    version = ''
+                    size = ''
+                
+                family_data = {
+                    'id': len(self.families_data) + 1,
+                    'title': title,
+                    'description': description,
+                    'category_id': category_id,
+                    'preview_url': urljoin(self.base_url, preview_url) if preview_url else '',
+                    'file_url': urljoin(self.base_url, file_url) if file_url else '',
+                    'revit_version': version,
+                    'file_size': size
+                }
+                
+                self.families_data.append(family_data)
+                print(f"Добавлено семейство: {title}")
+                
+            except Exception as e:
+                print(f"Ошибка при парсинге семейства: {e}")
+            
+            time.sleep(0.5)  # Пауза между семействами
+
+    def save_to_json(self):
+        # Создаем директорию для данных, если её нет
+        os.makedirs('parsed_data', exist_ok=True)
+        
+        # Сохраняем категории
+        with open('parsed_data/categories.json', 'w', encoding='utf-8') as f:
+            json.dump(self.categories_data, f, ensure_ascii=False, indent=2)
+        
+        # Сохраняем семейства
+        with open('parsed_data/families.json', 'w', encoding='utf-8') as f:
+            json.dump(self.families_data, f, ensure_ascii=False, indent=2)
+        
+        print(f"\nПарсинг завершен!")
+        print(f"Собрано категорий: {len(self.categories_data)}")
+        print(f"Собрано семейств: {len(self.families_data)}")
+        print("Данные сохранены в файлах:")
+        print("- parsed_data/categories.json")
+        print("- parsed_data/families.json")
+
+if __name__ == '__main__':
+    parser = BimlibParser()
+    parser.parse()
+    parser.save_to_json()
