@@ -11,8 +11,8 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Project
-        fields = ['id', 'title', 'description', 'thumbnail', 'status', 'created_at', 'updated_at']
-        read_only_fields = ['author']
+        fields = ['id', 'title', 'description', 'status', 'created_at', 'thumbnail', 'user']
+        read_only_fields = ['user']
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -21,3 +21,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             if request is not None:
                 representation['thumbnail'] = request.build_absolute_uri(representation['thumbnail'])
         return representation
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

@@ -1,26 +1,27 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
-from accounts.models import User
 from django.conf import settings
+
+User = get_user_model()
 
 class Project(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Черновик'),
-        ('in_progress', 'В работе'),
+        ('in_progress', 'В разработке'),
         ('completed', 'Завершен'),
+        ('archived', 'В архиве'),
     ]
 
-    title = models.CharField('Название', max_length=200)
-    description = models.TextField('Описание', blank=True)
-    thumbnail = models.ImageField('Превью', upload_to='projects/thumbnails/', blank=True, null=True)
-    status = models.CharField('Статус', max_length=20, choices=STATUS_CHOICES, default='draft')
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Автор')
-    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
-    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    thumbnail = models.ImageField(upload_to='project_thumbnails/', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
 
     class Meta:
-        verbose_name = 'Проект'
-        verbose_name_plural = 'Проекты'
         ordering = ['-created_at']
 
     def __str__(self):

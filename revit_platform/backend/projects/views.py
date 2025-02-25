@@ -8,14 +8,15 @@ from .serializers import ProjectSerializer, ProjectFileSerializer
 # Create your views here.
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(author=self.request.user)
+        return Project.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        serializer.save(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
